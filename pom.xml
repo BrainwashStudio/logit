@@ -6,8 +6,8 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.brainwashstudio</groupId>
     <artifactId>logit</artifactId>
-    <version>${app.version.name}</version>
-	<packaging>apklib</packaging>
+    <version>1.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
 	<name>LogIT - Simple log library</name>
 
     <scm>
@@ -38,13 +38,8 @@
         <url>https://github.com/BrainwashStudio/logit/issues</url>
     </issueManagement>
 
-    <properties>
-        <android.platform>18</android.platform>
-        <app.version.code>1</app.version.code>
-        <app.version.name>1.0-SNAPSHOT</app.version.name>
-    </properties>
-
     <dependencies>
+        <!-- We need Android api for AndroidLogService -->
 	  	<dependency>
 	  		<groupId>com.google.android</groupId>
 	  		<artifactId>android</artifactId>
@@ -58,57 +53,6 @@
         <testSourceDirectory>src/test/java</testSourceDirectory>
 	
 		<plugins>
-		    <plugin>
-				<groupId>com.jayway.maven.plugins.android.generation2</groupId>
-				<artifactId>android-maven-plugin</artifactId>
-                <version>3.6.0</version>
-				<extensions>true</extensions>
-                <configuration>
-                    <nativeLibrariesDirectory>ignored</nativeLibrariesDirectory>
-                    <sdk>
-                        <platform>${android.platform}</platform>
-                    </sdk>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>update-manifest</id>
-                        <goals>
-                            <goal>manifest-update</goal>
-                        </goals>
-                        <configuration>
-                            <manifest>
-                                <versionName>${app.version.name}</versionName>
-                                <versionCode>${app.version.code}</versionCode>
-                            </manifest>
-                        </configuration>
-                    </execution>
-                </executions>
-			</plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>attach-artifact</goal>
-                        </goals>
-                        <configuration>
-                            <artifacts>
-                                <artifact>
-                                    <type>jar</type>
-                                    <file>${project.build.directory}/${project.build.finalName}.jar</file>
-                                </artifact>
-                                <artifact>
-                                    <type>aar</type>
-                                    <file>${project.basedir}/build/libs/${project.artifactId}-${gradle.version}.aar</file>
-                                </artifact>
-                            </artifacts>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
 		</plugins>
 	</build>
     

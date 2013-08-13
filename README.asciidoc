@@ -1,0 +1,181 @@
+NOTE: This README is currently a draft, some features are not yet implemented and some will likely change.
+
+== logit
+
+IMPORTANT: This project is currently a proof of concept and its API will probably change!
+
+=== Introduction
+
++LogIT+ is a lightweight logging wrapper, originally written four our internal usage. 
+We needed one common api for logging in multiple environments (Android, JBoss AS, AppEngine and standalone .jar).
+That's why we've created this simple piece of code, that's easy to use and brings the simplification of logging.
+
+=== Example usage
+
+Imagine you have a shared .jar library, you'd like to use in your Android app, but also in your JavaEE application.
+You can't use +Logger+, because Android doesn't support it properly. On the other hand, you can't use Android's +Log+ class
+because it's not supported in JavaEE. That's when +LogIT+ comes into play.
+
+=== Setup
+
+In your `pom.xml` add following dependency:
+
+[source,xml]
+<dependency>
+	<groupId>com.brainwash</groupId>
+	<artifactId>logit</artifactId>
+	<version>1.0-SNAPSHOT</version>
+</dependency>
+
+=== How to
+
+This library tries to mimic the usage of Android's +Log+ class. Basically there are five levels of 
+logging, +VERBOSE+, +DEBUG+, +INFO+, +WARNING+ and +ERROR+. But you aren't restricted only to use these,
+you can declare your own levels.
+
+==== Configuration
+
+First you should set a +LogService+ (defaults to +ConsoleLogService+) and desired logging level (defaults to +Level.ERROR+).
+On Android, you can simply use +AndroidLogService+, on different platforms, 
+you can use +LoggerLogService+, +FileLogService+ or +ConsoleLogService+.
+
+The best way to set these is by creating a +logit.properties+ file in +META-INF+ folder with following content.
+With that approach, application that'll use your library can override the settings.
+
+[source]
+-----
+com.brainwashstudio.logit.Log.level = ERROR // VERBOSE, DEBUG, INFO, WARNING, ERROR, MUTE or any integer
+com.brainwashstudio.logit.Log.logService = com.brainwashstudio.Log.ConsoleLogService // LogService you want to use
+-----
+
+NOTE: If you write your own implementation of +LogService+, be sure to have a constructor, with one parameter
+of type +java.util.Properties+, otherwise your application will crash. The passed +Properties+ will have values read from
++logit.properties+, so you can add configuration for your own implementation of +LogService+.
+
+There's also other options, although we don't recommend it if you're writing a library (it's okay if
+used by the end user/application).
+
+[source,java]
+-----
+AndroidLogService logService = new AndroidLogService();
+
+Log.setLogService(logService);
+Log.setLoggingLevel(Log.Level.VERBOSE);
+-----
+
+==== Usage
+
+Once you set +LogService+, you can start logging. These are the methods you'll probably use the most:
+
+[source,java]
+-----
+Log.v( ... ); # verbose
+Log.d( ... ); # debug
+Log.i( ... ); # info
+Log.w( ... ); # warning
+Log.e( ... ); # error
+-----
+
+Of course if you just want to print a single line, there's nothing to stop you:
+
+[source,java]
+-----
+Log.writeLine("A line to write"); # writes an unformated line
+-----
+
+Or if you have custom LogService that supports more log levels, you can call:
+
+[source,java]
+-----
+Log.log(level, ... ); # log with any level specified
+-----
+
+NOTE: We strongly recommend that any LogService that declares additional levels has static 
+functions that will call +Log#log+ with proper level. That way, if the +LogService+ changes its level numbers,
+applications using it won't get broken. For example:
+
+[source,java]
+-----
+class TardisLogConsole extends LogService {
+    # implement abstract methods
+    
+    public static final int INFORM_DOCTOR = Log.Level.ERROR + 2000; # very severe
+
+    @Override
+    public void unknownLevel(LogMessage message) {
+        switch(message.getLevel()) {
+            case INFORM_DOCTOR:
+                // shout "DOCTOOOR!!!" like Martha Jones
+                break;
+            default:
+                // even we don't know this level, 
+                // so it's up to you how are you going to use it
+                // for example:
+                infoLevel(message);
+                break;
+        }
+    }
+
+    public static void informDoctor(String tag, String text) {
+        Log.log(INFORM_DOCTOR, tag, text);
+    }
+}
+-----
+
+But wait, there's more! You can construct your own +LogMessage+ and pass it to the +Log#log+ method
+and if it's loggable (that means the level of the message is higher or equal to loggingLevel set earlier)
+it'll be immediately passed to the +LogService+.
+
+[source,java]
+-----
+Exception e = RuntimeException("Just an example exception");
+
+LogMessage message = LogMessage.create()
+    .setLevel(Log.Level.ERROR)
+    .setTag("Tag to identify your class or method")
+    .setText("Text of the message")
+    .setThrowable(e);
+
+Log.log(message);
+-----
+
+This means, if you'll make your own +LogService+, you can also extend +LogMessage+ if you need more information, 
+or even a context to pass (for example logging into file on Android, or logging into Google Analytics on Android).
+
+IMPORTANT: You should still support plain +LogMessage+, because the basic logging uses it.
+
+[source,java]
+-----
+class LogServiceWithAndroidContext extends LogService {
+
+    @Override
+    public void log(LogMessage message) {
+        if(message instanceof LogMessageWithAndroidContext) {
+            LogMessageWithAndroidContext messageWithContext = (LogMessageWithAndroidContext) message;
+            
+            // do what you like
+        } else {
+            super.log(message);
+        }
+    }
+
+    public static void logWithContext(Context context, String tag, String text) {
+        LogMessageWithAndroidContext message = new LogMessageWithAndroidContext()
+            .setLevel(Log.Level.INFO)
+            .setTag(tag)
+            .setText(text)
+            .setContext(context);
+            
+        Log.log(message);
+    }
+
+    public static class LogMessageWithAndroidContext extends LogMessage {
+        protected Context mContext;
+        
+        public Context getContext() { ... }
+        
+        public LogMessageWithAndroidContext setContext(Context context) { ... }
+    }
+
+}
+-----
